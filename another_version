@@ -1,0 +1,193 @@
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <iostream>
+#include <vector>
+
+#include "helpers.h"
+#include "kassikhin.h"
+
+#define min(a, b) (a<b)?a:b
+using namespace std;
+struct  pt1 {
+	int x;
+	int y;
+	pt1() {}
+	pt1(int x1, int y1) {
+		x = x1;
+		y = y1;
+	}
+};
+const int MAXERR = 10;
+int ar(pt1 a, pt1 b, pt1 c) {
+	return a.x*(b.y - c.y) + b.x*(c.y - a.y) + c.x*(a.y - b.y);
+}
+std::pair <int,int> pt_to_pr(const pt1 &a) {
+	return std::make_pair(a.x, a.y);
+}
+
+inline std::pair<int, int> sw(std::pair<int, int> l) {
+	return std::make_pair(l.second, l.first);
+}
+
+void change_sign(int &y) {
+	y = -y;
+}
+
+bool cmp(pt1 a, pt1 b, int rl, int ud, int order) {
+	pair<int, int> p = pt_to_pr(a), q = pt_to_pr(b);
+	if (order)
+		sw(p), sw(q);
+	if (rl)
+		change_sign(p.first), change_sign(q.first);
+	if (ud)
+		change_sign(p.second), change_sign(q.second);
+	return (p < q);
+}
+int dist(pt1 a, pt1 b) {
+	return a.x*b.x + a.y*b.y;
+}
+std::vector <char> bl(3);
+
+int check_for_circle(const std::vector <std::vector <std::vector <char> > > &Im, vector<vector<vector<pt1>>> gr) {
+	int h = Im.size();
+	int w = Im[0].size();
+	pt1 ld = gr[0][1][0];
+	pt1 dl = gr[0][1][0];
+	pt1 ul = gr[0][0][1];
+	for (int i = 0; i < h; i++)
+		for (int j = 0; j < w; j++)
+			if (Im[i][j] != bl) {
+				int ds1 = ar(ld, dl, pt1(i, j))*ar(ld, ld, pt1(i, j)) / dist(ld, dl);
+				if (ds1 > MAXERR*MAXERR && ar(ld, dl, pt1(i, j)) > 0)
+					return 0;
+				int ds2 = ar(ld, ul, pt1(i, j))*ar(ld, ul, pt1(i, j)) / dist(ld, ul);
+				if (ds2 > MAXERR*MAXERR && ar(ld, ul, pt1(i, j)) < 0)
+					return 0;
+			}
+	return 4;
+}
+
+int num_of_vert(const vector <vector <vector <char> > > &Im) {
+	int h = Im.size();
+	int w = Im[0].size();
+	vector<pt1> v;
+	vector<vector<vector<pt1>>> gr(2, vector<vector<pt1>>(2, vector<pt1>(2)));
+	for (int i = 0; i < h; i++)
+		for (int j = 0; j < w; j++)
+			if (Im[i][j] != bl)
+				v.push_back(pt1(i, j));
+	for (int lr = 0; lr < 2; lr++)
+		for (int ud = 0; ud < 2; ud++)
+			for (int order = 0; order < 2; order++)
+				gr[lr][ud][order] = *max_element(v.begin(), v.end(), [&](pt1 x, pt1 y) {return cmp(x, y, lr, ud, order); });
+	vector <pt1> ans;
+	for (int lr = 0; lr < 2; lr++)
+		for (int ud = 0; ud < 2; ud++)
+			for (int order = 0; order < 2; order++) {
+				int fl = 1;
+				for (int j = 0; j < ans.size(); j++)
+					if (dist(ans[j], gr[lr][ud][order]) < MAXERR)
+						fl = 0;
+				if (fl)
+					ans.push_back(gr[lr][ud][order]);
+			}
+	if (ans.size() == 4) {
+		return check_for_circle(Im, gr);
+	}
+	return ans.size();
+}
+using namespace cv;
+using namespace std;
+
+Mat get_image(String address) {
+	Mat image;
+	image = imread(address, IMREAD_COLOR);
+	return image;
+}
+
+void onecolor(Mat &image, int color) {
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			auto pixel = get(image, x, y);
+			for (int i = 0; i < pixel.size(); i++) {
+				if (i != color) {
+					pixel[i] = 100;
+				}
+			}
+			set(image, x, y, pixel);
+		}
+	}
+}
+
+void count_color(Mat &image, int color) {
+	vector<int> pixs(256);
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			auto pixel = get(image, x, y);
+			pixs[(unsigned char)pixel[color]]++;
+		}
+	}
+	for (int i = 0; i < 256; i++) {
+		cout << i << ' ' << pixs[i] << endl;
+	}
+}
+
+int main(int argc, char** argv)
+{
+	String path = "dataset/0007.jpg";
+	if (argc == 2)
+	{
+		path = argv[1];
+	}
+	Mat image, original;
+	image = get_image(path); // Read the file
+	original = image.clone();
+	if (image.empty()) // Check for invalid input
+	{
+		cout << "Could not open or find the image" << std::endl;
+		return -1;
+	}
+
+	cout << num_of_vert(image);
+	//medianBlur(image, image, 5);
+	/*select_color(image, 170, 190, 160, 255, 70, 255);
+	//erode_image(image, 1);
+	//dilate_image(image, 1);
+
+	Mat image_2 = original.clone();
+	//medianBlur(image_2, image_2, 5);
+	//select_color(image_2, 10, 250, 50, 255, 50, 255);
+	cut_level(image_2, 2, 0.45);
+	//erode_image(image_2, 1);
+	//dilate_image(image_2, 1);
+
+	//image_invert(image_2);
+	image = min_filter(image, image_2);
+
+	//image = apply_mask(original, image);
+
+	dilate_image(image, 1);
+	image = big_white(image);
+
+	erode_image(image, 5);
+	dilate_image(image, 5);
+
+	image = apply_mask(original, image);
+
+	//cvtColor(original, original, CV_BGR2HSV);
+	//count_color(original, 1);
+	//imwrite("result.jpg", original);
+
+	namedWindow("Display window", WINDOW_AUTOSIZE);
+	imshow("Display window", image);
+	namedWindow("Display window 2", WINDOW_AUTOSIZE);
+	imshow("Display window 2", original);
+
+	//imwrite("result.jpg", image);
+
+	waitKey(0); // Wait for a keystroke in the window
+	*/
+	return 0;
+}
