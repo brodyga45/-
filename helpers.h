@@ -4,3 +4,4 @@
 #include <vector>
 
 std::vector<std::vector<std::vector<char>>> mat_to_vec(cv::Mat image);
+std::vector<char> get(cv::Mat image, int x, int y);

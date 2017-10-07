@@ -15,3 +15,13 @@ std::vector<std::vector<std::vector<char>>> mat_to_vec(cv::Mat image) {
 	}
 	return vector_image;
 }
+
+std::vector<char> get(cv::Mat image, int x, int y) {
+	std::vector<char> pixel;
+	char* ptr = (char*)((long long)(image.datastart) + y * image.step.buf[0] + x * image.step.buf[1]);
+	for (int k = 0; k < image.step.buf[1]; k++) {
+		pixel.push_back(*ptr);
+		ptr++;
+	}
+	return pixel;
+}
