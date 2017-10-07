@@ -1,6 +1,6 @@
 #include "helpers.h"
 
-std::vector<std::vector<std::vector<char>>> mat_to_vec(cv::Mat image) {
+std::vector<std::vector<std::vector<char>>> mat_to_vec(cv::Mat &image) {
 	int image_rows = image.rows;
 	int image_cols = image.cols;
 	std::vector<std::vector<std::vector<char>>> vector_image(image_rows, std::vector<std::vector<char>>(image_cols, std::vector<char>(image.step.buf[1])));
@@ -16,7 +16,7 @@ std::vector<std::vector<std::vector<char>>> mat_to_vec(cv::Mat image) {
 	return vector_image;
 }
 
-std::vector<char> get(cv::Mat image, int x, int y) {
+std::vector<char> get(cv::Mat &image, int x, int y) {
 	std::vector<char> pixel;
 	char* ptr = (char*)((long long)(image.datastart) + y * image.step.buf[0] + x * image.step.buf[1]);
 	for (int k = 0; k < image.step.buf[1]; k++) {
@@ -24,4 +24,15 @@ std::vector<char> get(cv::Mat image, int x, int y) {
 		ptr++;
 	}
 	return pixel;
+}
+
+void set(cv::Mat &image, int x, int y, std::vector<char> new_value) {
+	if (new_value.size() < image.step.buf[1])
+		return;
+
+	char* ptr = (char*)((long long)(image.datastart) + y * image.step.buf[0] + x * image.step.buf[1]);
+	for (int k = 0; k < image.step.buf[1]; k++) {
+		*ptr = new_value[k];
+		ptr++;
+	}
 }
