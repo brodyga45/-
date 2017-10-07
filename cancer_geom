@@ -1,0 +1,111 @@
+#pragma once
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include "helpers.h"
+#include <vector>
+
+using namespace std;
+using namespace cv;
+
+vector <vector <int> > bin(vector<vector <vector <char> > > im) {
+	vector <vector <int> > ans(800,vector <int> (600));
+	for (int i = 0; i < 800; i++)
+		for (int j = 0; j < 600; j++)
+			if (im[i][j][0] + im[i][j][1] + im[i][j][2] < 100)
+				ans[i][j] = 1;
+	return ans;
+}
+int Check_convex(Mat image) {
+	vector<vector <vector <char> > > vec = mat_to_vec();
+	vector <vector<int> > bvec = bin(vec);
+	int ans = 0;
+	int h = 0;
+	for (int i = 0; i < 800; i++) {
+		int q = 0, p = 0;
+		int l = 0, r = 0;
+		for (int j = 0; j < 600; j++) {
+			if (!bvec[i][j])
+				p++;
+			else
+				if (p >= 4) {
+					if (q == 0)
+						l = j - p;
+					else
+						h++;
+					r = j;
+					q++;
+					p = 0;
+				}
+		}
+		if (q > 2)
+			return -1;
+		ans += r - l;
+	}
+
+}
+struct pt {
+	double x, y;
+};
+
+pair<int, int> pt_to_pair(pt a) {
+	return make_pair(a.x, a.y);
+}
+
+bool cmp(pt a, pt b) {
+	return pt_to_pair(a) < pt_to_pair(b);
+}
+
+int ar(pt a, pt b, pt c) {
+	return a.x*(b.y - c.y) + b.x*(c.y - a.y) + c.x*(a.y - b.y);
+}
+
+pt zp() {
+	pt t;
+	t.x = t.y = 0;
+	return t;
+}
+
+bool cw(pt a, pt b, pt c) {
+	return ar(a,b,c) < 0;
+}
+
+bool ccw(pt a, pt b, pt c) {
+	return ar(a,b,c) > 0;
+}
+
+vector <pt> convex_hull(vector<pt> & a) {
+	if (a.size() == 1)  return;
+	vector <pt> ans;
+	sort(a.begin(), a.end(), &cmp);
+	pt p1 = a[0], p2 = a.back();
+	vector<pt> up, down;
+	up.push_back(p1);
+	down.push_back(p1);
+	for (size_t i = 1; i<a.size(); ++i) {
+		if (i == a.size() - 1 || cw(p1, a[i], p2)) {
+			while (up.size() >= 2 && !cw(up[up.size() - 2], up[up.size() - 1], a[i]))
+				up.pop_back();
+			up.push_back(a[i]);
+		}
+		if (i == a.size() - 1 || ccw(p1, a[i], p2)) {
+			while (down.size() >= 2 && !ccw(down[down.size() - 2], down[down.size() - 1], a[i]))
+				down.pop_back();
+			down.push_back(a[i]);
+		}
+	}
+	for (size_t i = 0; i<up.size(); ++i)
+		ans.push_back(up[i]);
+	for (size_t i = down.size() - 2; i>0; --i)
+		ans.push_back(down[i]);
+	return ans;
+}
+int det(pt a, pt b) {
+	return ar(a,b,zp());
+}
+int S_cnv(vector <pt> &a) {
+	int s = 0;
+	for (int i = 0; i < a.size() - 1; i++)
+		s += det(a[i], a[i + 1]);
+	return abs(s/2);
+}
+
