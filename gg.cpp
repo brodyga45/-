@@ -65,3 +65,51 @@ std::vector<int> count_threshold(cv::Mat &image, int type)
 
    return { threshold, min, max };
 }
+
+std::pair<int, int> operator +(
+	std::pair<int, int> a,
+	std::pair<int, int> b
+	)
+{
+	return std::make_pair(a.first + b.first, a.second + b.second);
+}
+
+std::pair<int, int> turn(
+	std::pair<int, int> a
+	)
+{
+	return std::make_pair(-a.second, a.first);
+}
+
+cv::Mat geo_line(cv::Mat &image, int parameter)
+{
+	bool used[600][800];	
+	for (int i = 0; i < 600; ++i)
+		for (int j = 0; j < 800; ++j)
+			used[i][j] = 0;
+	std::queue<std::pair<int, int>> q;
+	while (!q.empty())
+	{
+		std::pair<int, int> curr =            q.front();
+		std::pair<int, int> addv = std::make_pair(1, 0);
+		q.pop();
+		for (int angle = 0; angle < 4; ++angle)
+		{
+			auto pixel = get(image, (curr + addv).first, (curr + addv).second);
+			if (abs((int)(unsigned char)pixel[2] - parameter) < 5 && !used[(curr + addv).first][(curr + addv).second])
+				q.push(curr + addv);
+			addv = turn(addv);
+		}
+	}
+	
+	cv::Mat new_image;
+
+	for (int i = 0; i < 600; ++i)
+		for (int j = 0; j < 800; ++j)
+			if (used[i][j])
+				set(new_image, i, j, COLOR_WHITE);
+			else
+				set(new_image, i, j, COLOR_BLACK);
+
+	return new_image;
+}
