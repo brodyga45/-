@@ -16,6 +16,8 @@
 using namespace cv;
 using namespace std;
 
+const int THRESHOLD = 128;
+
 Mat get_image(String address) {
 	Mat image;
 	image = imread(address, IMREAD_COLOR);
@@ -95,15 +97,19 @@ void cut_color_level(cv::Mat &image, int color, int threshold) {
 	cvtColor(image, image, CV_BGR2GRAY);
 }
 
-vector<Mat> get_interesting_spots(Mat &original, int color) {
+vector<Mat> get_interesting_spots(Mat &mirror, int color) {
 	int hue = 0;
 	if (color == 0) hue = 180;
 	if (color == 1) hue = 60;
 	if (color == 2) hue = 120;
 
+	Mat original = mirror.clone();
+	auto threshold = count_threshold(mirror, 2 - color);
+	cout << threshold[2] - threshold[1] << endl;
+
 	Mat image;
 	image = original.clone();
-	select_color(image, hue - 10, hue + 10, 150, 255, 60, 255);
+	select_color(image, hue - 10, hue + 10, 120, 255, 60, 255);
 
 	Mat image_2;
 
@@ -111,41 +117,34 @@ vector<Mat> get_interesting_spots(Mat &original, int color) {
 	cut_level(image_2, 2 - color, 0.4);
 	image = min_filter(image, image_2);
 
-	image_2 = original.clone();
-	select_color(image_2, 0, 180, 0, 20, 150, 255);
-	image = max_filter(image, image_2);
+	//image_2 = original.clone();
+	//select_color(image_2, 0, 180, 0, 20, 150, 255);
+	//image = max_filter(image, image_2);
+
+	dilate_image(image, 1);
+	image = big_white(image);
 
 	image_2 = original.clone();
-	cut_color_level(image_2, 2 - color, count_threshold(image_2, 2 - color) - 20);
+	cut_color_level(image_2, 2 - color, threshold[0]);
 	image = min_filter(image, image_2);
 
 	dilate_image(image, 1);
 	image = big_white(image);
 
-	namedWindow("Display", WINDOW_AUTOSIZE);
-	imshow("Display", image);
-	waitKey(0);
-	cvDestroyWindow("Display window");
-
 	erode_image(image, 5);
 	dilate_image(image, 5);
 
-	image_2 = original.clone();
-	select_color(image_2, 0, 180, 0, 20, 150, 255);
-	image_invert(image_2);
-	image = min_filter(image, image_2);
-	erode_image(image, 1);
-	dilate_image(image, 3);
-	image = big_white(image);
-	erode_image(image, 2);
+	//image_2 = original.clone();
+	//select_color(image_2, 0, 180, 0, 20, 150, 255);
+	//image_invert(image_2);
+	//image = min_filter(image, image_2);
+	//erode_image(image, 1);
+	//dilate_image(image, 3);
+	//image = big_white(image);
+	//erode_image(image, 2);
 
-	erode_image(image, 5);
-	dilate_image(image, 5);
-
-	namedWindow("Display", WINDOW_AUTOSIZE);
-	imshow("Display", image);
-	waitKey(0);
-	cvDestroyWindow("Display window");
+	//erode_image(image, 5);
+	//dilate_image(image, 5);
 
 	auto images = chop_image(image, original);
 
@@ -158,7 +157,7 @@ vector<Mat> get_interesting_spots(Mat &original, int color) {
 
 int main(int argc, char** argv)
 {
-	String path = "dataset/0007.jpg";
+	String path = "dataset/0002.jpg";
 	if (argc == 2)
 	{
 		path = argv[1];

@@ -1,6 +1,6 @@
 #include "gg.h"
 
-int count_threshold(cv::Mat &image, int type)
+std::vector<int> count_threshold(cv::Mat &image, int type)
 {
  
 	auto pixel0 = get(image, 0, 0);
@@ -52,5 +52,16 @@ int count_threshold(cv::Mat &image, int type)
       }
    }
 
-   return threshold;
+   int histSum = 0;
+   for (int i = 0; i < 256; i++) histSum += hist[i];
+
+   min = 0;
+   int sum = 0;
+   while (sum * 10 < histSum && min < 255) sum += hist[min++];
+
+   max = 255;
+   sum = 0;
+   while (sum * 10 < histSum && max > 0) sum += hist[max--];
+
+   return { threshold, min, max };
 }
