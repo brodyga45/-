@@ -109,7 +109,7 @@ vector<Mat> get_interesting_spots(Mat &mirror, int color) {
 
 	Mat image;
 	image = original.clone();
-	select_color(image, hue - 10, hue + 10, 120, 255, 60, 255);
+	select_color(image, hue - 10, hue + 10, 150, 255, 60, 255);
 
 	Mat image_2;
 
@@ -121,17 +121,17 @@ vector<Mat> get_interesting_spots(Mat &mirror, int color) {
 	//select_color(image_2, 0, 180, 0, 20, 150, 255);
 	//image = max_filter(image, image_2);
 
-	dilate_image(image, 1);
+	dilate_image(image, 2);
 	image = big_white(image);
 
 	image_2 = original.clone();
 	cut_color_level(image_2, 2 - color, threshold[0]);
 	image = min_filter(image, image_2);
 
-	dilate_image(image, 1);
+	dilate_image(image, 2);
 	image = big_white(image);
 
-	erode_image(image, 5);
+	erode_image(image, 6);
 	dilate_image(image, 5);
 
 	//image_2 = original.clone();
@@ -155,6 +155,16 @@ vector<Mat> get_interesting_spots(Mat &mirror, int color) {
 	return images;
 }
 
+int pixels_num(Mat &image) {
+	int sum = 0;
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			if (get(image, x, y)[0] != 0) sum++;
+		}
+	}
+	return sum;
+}
+
 int main(int argc, char** argv)
 {
 	String path = "dataset/0002.jpg";
@@ -169,23 +179,48 @@ int main(int argc, char** argv)
 		cout << "Could not open or find the image" << std::endl;
 		return -1;
 	}
-
+	Mat mirror;
 	vector<Mat> images;
+	cvtColor(original, mirror, CV_BGR2HSV);
+	for (int x = 0; x < original.cols; x++) {
+		for (int y = 0; y < original.rows; y++) {
+			int sum = 0;
+			image = geo_line(mirror, x, y, sum);
+			if (sum < 700) continue;
+			dilate_image(image, 2);
+			image = big_white(image);
+			//if (sum > 30000) continue;
+			images.push_back(apply_mask(original, image));
+			cout << images.size() << endl;
+		}
+		cout << "column " << x << endl;
+	}
 
-	for (int i = 0; i < 3; i++) {
+	//cvtColor(original, original, CV_HSV2BGR);
+	//dilate_image(image, 1);
+	//image = big_white(image);
+
+	//image = apply_mask(original, image);
+
+	//namedWindow("Display window", WINDOW_AUTOSIZE);
+	//imshow("Display window", image);
+
+	//waitKey(0);
+
+	//vector<Mat> images;
+
+	/*for (int i = 0; i < 3; i++) {
 		vector<Mat> color_images = get_interesting_spots(original, i);
 		for (int j = 0; j < color_images.size(); j++) {
 			images.push_back(color_images[j]);
 		}
-	}
+	}*/
 
 	namedWindow("Display window", WINDOW_AUTOSIZE);
 	imshow("Display window", original);
 
 	for (int i = 0; i < images.size(); i++) {
-		namedWindow("Display window " + (char)(64 + i), WINDOW_AUTOSIZE);
-		imshow("Display window " + (char)(64 + i), images[i]);
-		waitKey(0);
+		imwrite("images/image_" + string(1, (char)(i + '0')) + ".jpg", images[i]);
 	}
 
 	//imwrite("result.jpg", image);

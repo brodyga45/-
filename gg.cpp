@@ -81,35 +81,61 @@ std::pair<int, int> turn(
 	return std::make_pair(-a.second, a.first);
 }
 
-cv::Mat geo_line(cv::Mat &image, int parameter)
+int absmod(int x) {
+	return std::min(abs(x), std::min(abs(x + 180), abs(x - 180)));
+}
+
+bool used[800][600];
+int global_used[800][600];
+
+cv::Mat geo_line(cv::Mat &image, int x, int y, int &sum)
 {
-	bool used[600][800];	
-	for (int i = 0; i < 600; ++i)
-		for (int j = 0; j < 800; ++j)
+	if (global_used[x][y] > 0) return cv::Mat();
+	for (int i = 0; i < 800; ++i)
+		for (int j = 0; j < 600; ++j)
 			used[i][j] = 0;
+	int parameter2 = (unsigned char)get(image, x, y)[2];
+	int parameter1 = (unsigned char)get(image, x, y)[1];
+	int parameter0 = (unsigned char)get(image, x, y)[0];
 	std::queue<std::pair<int, int>> q;
+	q.push(std::make_pair(x, y));
+	used[x][y] = 1;
+	global_used[x][y]++;
 	while (!q.empty())
 	{
 		std::pair<int, int> curr =            q.front();
 		std::pair<int, int> addv = std::make_pair(1, 0);
 		q.pop();
+		sum++;
 		for (int angle = 0; angle < 4; ++angle)
 		{
-			auto pixel = get(image, (curr + addv).first, (curr + addv).second);
-			if (abs((int)(unsigned char)pixel[2] - parameter) < 5 && !used[(curr + addv).first][(curr + addv).second])
-				q.push(curr + addv);
+			if (!((curr + addv).first < 0 || (curr + addv).first >= 800 || (curr + addv).second < 0 || (curr + addv).second >= 600)) {
+				auto pixel = get(image, (curr + addv).first, (curr + addv).second);
+				if (abs((int)((unsigned char)pixel[2]) - parameter2) < 5 &&
+					absmod((int)((unsigned char)pixel[1]) - (int)((unsigned char)get(image, curr.first, curr.second)[1])) < 20 &&
+					absmod((int)((unsigned char)pixel[0]) - (int)((unsigned char)get(image, curr.first, curr.second)[0])) < 15 && !used[(curr + addv).first][(curr + addv).second]) {
+					used[(curr + addv).first][(curr + addv).second] = 1;
+					global_used[(curr + addv).first][(curr + addv).second]++;
+					q.push(curr + addv);
+				}
+			}
 			addv = turn(addv);
 		}
 	}
 	
 	cv::Mat new_image;
+	if (sum >= 700) {
+		new_image = image.clone();
 
-	for (int i = 0; i < 600; ++i)
-		for (int j = 0; j < 800; ++j)
-			if (used[i][j])
-				set(new_image, i, j, COLOR_WHITE);
-			else
-				set(new_image, i, j, COLOR_BLACK);
+		for (int i = 0; i < 800; ++i)
+			for (int j = 0; j < 600; ++j)
+				if (used[i][j])
+					set(new_image, i, j, COLOR_WHITE);
+				else
+					set(new_image, i, j, COLOR_BLACK);
+
+		cv::cvtColor(new_image, new_image, CV_BGR2GRAY);
+	}
 
 	return new_image;
 }
