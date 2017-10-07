@@ -59,3 +59,62 @@ cv::Mat big_white(cv::Mat &image) {
 	}
 	return start;
 }
+
+void dfs(int x, int y, cv::Mat &image, std::vector < std::vector <int> > &mr, int cl, std::vector< std::pair <int, int> > &comon, int n, int m, std::vector <char> &e) {
+	if (mr[x][y] != 0) {
+		return;
+	}
+	mr[x][y] = cl;
+	for (int i = 0; i < comon.size(); i++) {
+		int xa, ya;
+		xa = comon[i].first;
+		ya = comon[i].second;
+		if (x + xa < 0 || x + xa >= n || y + ya < 0 || y + ya >= m) {
+			continue;
+		}
+		if (get(image, x + xa, y + ya) == e) {
+			continue;
+		}
+		dfs(x + xa, y + ya, image, mr, cl, comon, n, m, e);
+	}
+	return;
+}
+
+std::vector<cv::Mat> chop_image(cv::Mat &etalon, cv::Mat &image) {
+	const int n = 800, m = 600;
+	std::vector < std::pair <int, int> > comon = { { -1, 0 },{ 0, -1 },{ 1, 0 },{ 0, 1 } };
+	std::vector < std::vector <int> > mr(n, std::vector <int>(m, 0));
+	cv::Mat empty = image.clone();
+	std::vector <char> null = { -1 };
+	std::vector <char> e = { 0 };
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			set(empty, i, j, { 0, 0, 0 });
+		}
+	}
+
+	int cl = 0;
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			if (get(etalon, i, j) == e || mr[i][j] != 0) {
+				continue;
+			}
+			cl++;
+			dfs(i, j, etalon, mr, cl, comon, n, m, e);
+		}
+	}
+	std::vector < cv::Mat > ans(cl);
+	for (int i = 0; i < cl; i++) {
+		ans[i] = empty.clone();
+	}
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			if (mr[i][j] == 0) {
+				continue;
+			}
+			set(ans[mr[i][j] - 1], i, j, get(image, i, j));
+		}
+	}
+	return ans;
+}

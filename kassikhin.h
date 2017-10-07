@@ -5,3 +5,4 @@
 #include "helpers.h"
 
 cv::Mat big_white(cv::Mat &image);
+std::vector<cv::Mat> chop_image(cv::Mat &etalon, cv::Mat &image);
