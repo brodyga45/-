@@ -6,6 +6,9 @@
 #include <vector>
 
 #include "helpers.h"
+#include "kassikhin.h"
+
+#define min(a, b) (a<b)?a:b
 
 using namespace cv;
 using namespace std;
@@ -16,51 +19,81 @@ Mat get_image(String address) {
 	return image;
 }
 
-void erode_image(Mat& image, int erosion_size) {
-	Mat element = getStructuringElement(MORPH_RECT,
-		Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-		Point(erosion_size, erosion_size));
+void onecolor(Mat &image, int color) {
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			auto pixel = get(image, x, y);
+			for (int i = 0; i < pixel.size(); i++) {
+				if (i != color) {
+					pixel[i] = 100;
+				}
+			}
+			set(image, x, y, pixel);
+		}
+	}
+}
 
-	erode(image, image, element);
+void count_color(Mat &image, int color) {
+	vector<int> pixs(256);
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			auto pixel = get(image, x, y);
+			pixs[(unsigned char)pixel[color]]++;
+		}
+	}
+	for (int i = 0; i < 256; i++) {
+		cout << i << ' ' << pixs[i] << endl;
+	}
 }
 
 int main(int argc, char** argv)
 {
-	String path = "dataset/0001.jpg";
+	String path = "dataset/0005.jpg";
 	if (argc == 2)
 	{
 		path = argv[1];
 	}
 	Mat image, original;
 	image = get_image(path); // Read the file
-	original = get_image(path);
+	original = image.clone();
 	if (image.empty()) // Check for invalid input
 	{
 		cout << "Could not open or find the image" << std::endl;
 		return -1;
 	}
-	cvtColor(image, image, CV_BGR2HSV);
-	for (int x = 0; x < image.cols; x++) {
-		for (int y = 0; y < image.rows; y++) {
-			vector<char> pixel = get(image, x, y);
-			int hue = (unsigned char)pixel[0];
-			int sat = (unsigned char)pixel[1];
-			int val = (unsigned char)pixel[2];
-			if ((hue < 10 || hue > 245) && (sat > 50) && (val > 50)) {
-				set(image, x, y, COLOR_WHITE);
-			}
-			else {
-				set(image, x, y, COLOR_BLACK);
-			}
-		}
-	}
-	cvtColor(image, image, CV_BGR2GRAY);
-	erode_image(image, 1);
+	//medianBlur(image, image, 5);
+	select_color(image, 170, 190, 160, 255, 70, 255);
+	//erode_image(image, 1);
+	//dilate_image(image, 1);
 
-	namedWindow("Display window", WINDOW_AUTOSIZE); // Create a window for display.
-	imshow("Display window", image); // Show our image inside it.
-	namedWindow("Display window 2", WINDOW_AUTOSIZE); // Create a window for display.
-	imshow("Display window 2", original); // Show our image inside it.
+	Mat image_2 = original.clone();
+	//medianBlur(image_2, image_2, 5);
+	//select_color(image_2, 10, 250, 50, 255, 50, 255);
+	cut_level(image_2, 2, 0.45);
+	//erode_image(image_2, 1);
+	//dilate_image(image_2, 1);
+
+	//image_invert(image_2);
+	image = min_filter(image, image_2);
+
+	//image = apply_mask(original, image);
+
+	dilate_image(image, 1);
+	image = big_white(image);
+
+	erode_image(image, 5);
+	dilate_image(image, 5);
+
+	image = apply_mask(original, image);
+
+	//cvtColor(original, original, CV_BGR2HSV);
+	//count_color(original, 1);
+	//imwrite("result.jpg", original);
+
+	namedWindow("Display window", WINDOW_AUTOSIZE); 
+	imshow("Display window", image);
+	namedWindow("Display window 2", WINDOW_AUTOSIZE);
+	imshow("Display window 2", original);
 
 	//imwrite("result.jpg", image);
 

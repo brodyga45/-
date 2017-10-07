@@ -70,10 +70,10 @@ void select_color(cv::Mat &image, int hue_min, int hue_max, int sat_min, int sat
 	for (int x = 0; x < image.cols; x++) {
 		for (int y = 0; y < image.rows; y++) {
 			std::vector<char> pixel = get(image, x, y);
-			int hue = (unsigned char)pixel[0];
-			int sat = (unsigned char)pixel[1];
-			int val = (unsigned char)pixel[2];
-			if (((hue_min <= hue && hue <= hue_max) || (hue_min <= hue + 256 && hue + 256 <= hue_max))
+			int hue = (int)((unsigned char)pixel[0]);
+			int sat = (int)((unsigned char)pixel[1]);
+			int val = (int)((unsigned char)pixel[2]);
+			if (((hue_min <= hue && hue <= hue_max) || (hue_min <= hue + 180 && hue + 180 <= hue_max))
 				&& ((sat_min <= sat && sat <= sat_max) || (sat_min <= sat + 256 && sat + 256 <= sat_max))
 				&& ((val_min <= val && val <= val_max) || (val_min <= val + 256 && val + 256 <= val_max))) {
 				set(image, x, y, COLOR_WHITE);
