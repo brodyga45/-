@@ -6,4 +6,4 @@
 #include <stdlib.h>
 #include "helpers.h"
 
-cv::Mat count_threshold(cv::Mat &image, std::string type);
+int count_threshold(cv::Mat &image, int type);

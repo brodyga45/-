@@ -116,6 +116,21 @@ cv::Mat min_filter(cv::Mat &image_1, cv::Mat &image_2) {
 	return image;
 }
 
+cv::Mat max_filter(cv::Mat &image_1, cv::Mat &image_2) {
+	cv::Mat image = image_1.clone();
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			auto pixel_1 = get(image_1, x, y);
+			auto pixel_2 = get(image_2, x, y);
+			for (int i = 0; i < pixel_1.size(); i++) {
+				pixel_1[i] = std::max((unsigned char)pixel_1[i], (unsigned char)pixel_2[i]);
+			}
+			set(image, x, y, pixel_1);
+		}
+	}
+	return image;
+}
+
 cv::Mat apply_mask(cv::Mat &image, cv::Mat &mask) {
 	cv::Mat applied_image = image.clone();
 	for (int x = 0; x < image.cols; x++) {

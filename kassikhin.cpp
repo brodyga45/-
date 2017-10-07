@@ -105,16 +105,37 @@ std::vector<cv::Mat> chop_image(cv::Mat &etalon, cv::Mat &image) {
 		}
 	}
 	std::vector < cv::Mat > ans(cl);
+
+
 	for (int i = 0; i < cl; i++) {
 		ans[i] = empty.clone();
 	}
+
+	std::vector<int> l(cl, n), r(cl, 0), u(cl, 0), d(cl, m);
+
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < m; j++) {
 			if (mr[i][j] == 0) {
 				continue;
 			}
+			l[mr[i][j] - 1] = std::min(l[mr[i][j] - 1], i);
+			r[mr[i][j] - 1] = std::max(r[mr[i][j] - 1], i);
+
+
+
+			u[mr[i][j] - 1] = std::max(u[mr[i][j] - 1], j);
+			d[mr[i][j] - 1] = std::min(d[mr[i][j] - 1], j);
+
+
 			set(ans[mr[i][j] - 1], i, j, get(image, i, j));
 		}
 	}
+
+	for (int i = 0; i < cl; i++) {
+		cv::Rect rect(l[i], d[i], r[i] - l[i], u[i] - d[i]);
+
+		ans[i] = ans[i](rect);
+	}
+
 	return ans;
 }

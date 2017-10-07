@@ -1,3 +1,5 @@
+#pragma comment(linker, "/STACK:100000000")
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -7,6 +9,7 @@
 
 #include "helpers.h"
 #include "kassikhin.h"
+#include "gg.h"
 
 #define min(a, b) (a<b)?a:b
 
@@ -46,54 +49,145 @@ void count_color(Mat &image, int color) {
 	}
 }
 
+Mat convert_to_grayscale(Mat &image, int color) {
+	Mat ans;
+	cvtColor(image, ans, CV_BGR2GRAY);
+
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			auto pixel = get(image, x, y);
+			set(ans, x, y, { pixel[color] });
+		}
+	}
+
+	return ans;
+}
+
+void normalize(Mat &image) {
+	vector<Mat> images(image.step.buf[1]);
+	for (int color = 0; color < image.step.buf[1]; color++) {
+		images[color] = convert_to_grayscale(image, color);
+		equalizeHist(images[color], images[color]);
+	}
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			vector<char> pixel(image.step.buf[1]);
+			for (int color = 0; color < image.step.buf[1]; color++) {
+				pixel[color] = get(images[color], x, y)[0];
+			}
+			set(image, x, y, pixel);
+		}
+	}
+}
+
+void cut_color_level(cv::Mat &image, int color, int threshold) {
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			std::vector<char> pixel = get(image, x, y);
+			if ((unsigned int)pixel[color] >= threshold) {
+				set(image, x, y, COLOR_WHITE);
+			}
+			else {
+				set(image, x, y, COLOR_BLACK);
+			}
+		}
+	}
+	cvtColor(image, image, CV_BGR2GRAY);
+}
+
+vector<Mat> get_interesting_spots(Mat &original, int color) {
+	int hue = 0;
+	if (color == 0) hue = 180;
+	if (color == 1) hue = 60;
+	if (color == 2) hue = 120;
+
+	Mat image;
+	image = original.clone();
+	select_color(image, hue - 10, hue + 10, 150, 255, 60, 255);
+
+	Mat image_2;
+
+	image_2 = original.clone();
+	cut_level(image_2, 2 - color, 0.4);
+	image = min_filter(image, image_2);
+
+	image_2 = original.clone();
+	select_color(image_2, 0, 180, 0, 20, 150, 255);
+	image = max_filter(image, image_2);
+
+	image_2 = original.clone();
+	cut_color_level(image_2, 2 - color, count_threshold(image_2, 2 - color) - 20);
+	image = min_filter(image, image_2);
+
+	dilate_image(image, 1);
+	image = big_white(image);
+
+	namedWindow("Display", WINDOW_AUTOSIZE);
+	imshow("Display", image);
+	waitKey(0);
+	cvDestroyWindow("Display window");
+
+	erode_image(image, 5);
+	dilate_image(image, 5);
+
+	image_2 = original.clone();
+	select_color(image_2, 0, 180, 0, 20, 150, 255);
+	image_invert(image_2);
+	image = min_filter(image, image_2);
+	erode_image(image, 1);
+	dilate_image(image, 3);
+	image = big_white(image);
+	erode_image(image, 2);
+
+	erode_image(image, 5);
+	dilate_image(image, 5);
+
+	namedWindow("Display", WINDOW_AUTOSIZE);
+	imshow("Display", image);
+	waitKey(0);
+	cvDestroyWindow("Display window");
+
+	auto images = chop_image(image, original);
+
+	for (int i = 0; i < images.size(); i++) {
+		resize(images[i], images[i], Size(100, 100), 0, 0, 1);
+	}
+
+	return images;
+}
+
 int main(int argc, char** argv)
 {
-	String path = "dataset/0005.jpg";
+	String path = "dataset/0007.jpg";
 	if (argc == 2)
 	{
 		path = argv[1];
 	}
 	Mat image, original;
-	image = get_image(path); // Read the file
-	original = image.clone();
-	if (image.empty()) // Check for invalid input
+	original = get_image(path); // Read the file
+	if (original.empty()) // Check for invalid input
 	{
 		cout << "Could not open or find the image" << std::endl;
 		return -1;
 	}
-	//medianBlur(image, image, 5);
-	select_color(image, 170, 190, 160, 255, 70, 255);
-	//erode_image(image, 1);
-	//dilate_image(image, 1);
 
-	Mat image_2 = original.clone();
-	//medianBlur(image_2, image_2, 5);
-	//select_color(image_2, 10, 250, 50, 255, 50, 255);
-	cut_level(image_2, 2, 0.45);
-	//erode_image(image_2, 1);
-	//dilate_image(image_2, 1);
+	vector<Mat> images;
 
-	//image_invert(image_2);
-	image = min_filter(image, image_2);
+	for (int i = 0; i < 3; i++) {
+		vector<Mat> color_images = get_interesting_spots(original, i);
+		for (int j = 0; j < color_images.size(); j++) {
+			images.push_back(color_images[j]);
+		}
+	}
 
-	//image = apply_mask(original, image);
+	namedWindow("Display window", WINDOW_AUTOSIZE);
+	imshow("Display window", original);
 
-	dilate_image(image, 1);
-	image = big_white(image);
-
-	erode_image(image, 5);
-	dilate_image(image, 5);
-
-	image = apply_mask(original, image);
-
-	//cvtColor(original, original, CV_BGR2HSV);
-	//count_color(original, 1);
-	//imwrite("result.jpg", original);
-
-	namedWindow("Display window", WINDOW_AUTOSIZE); 
-	imshow("Display window", image);
-	namedWindow("Display window 2", WINDOW_AUTOSIZE);
-	imshow("Display window 2", original);
+	for (int i = 0; i < images.size(); i++) {
+		namedWindow("Display window " + (char)(64 + i), WINDOW_AUTOSIZE);
+		imshow("Display window " + (char)(64 + i), images[i]);
+		waitKey(0);
+	}
 
 	//imwrite("result.jpg", image);
 
