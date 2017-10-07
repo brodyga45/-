@@ -111,9 +111,11 @@ cv::Mat geo_line(cv::Mat &image, int x, int y, int &sum)
 		{
 			if (!((curr + addv).first < 0 || (curr + addv).first >= 800 || (curr + addv).second < 0 || (curr + addv).second >= 600)) {
 				auto pixel = get(image, (curr + addv).first, (curr + addv).second);
-				if (abs((int)((unsigned char)pixel[2]) - parameter2) < 5 &&
-					absmod((int)((unsigned char)pixel[1]) - (int)((unsigned char)get(image, curr.first, curr.second)[1])) < 20 &&
-					absmod((int)((unsigned char)pixel[0]) - (int)((unsigned char)get(image, curr.first, curr.second)[0])) < 15 && !used[(curr + addv).first][(curr + addv).second]) {
+				if  (abs((int)((unsigned char)pixel[2]) - parameter2) < 50														 &&
+					(abs((int)((unsigned char)pixel[1]) - (int)((unsigned char)get(image, curr.first, curr.second)[1])) < 15	 ||
+					absmod((int)((unsigned char)pixel[0]) - (int)((unsigned char)get(image, curr.first, curr.second)[0])) < 15)  && 
+					!used[(curr + addv).first][(curr + addv).second]) 
+				{
 					used[(curr + addv).first][(curr + addv).second] = 1;
 					global_used[(curr + addv).first][(curr + addv).second]++;
 					q.push(curr + addv);
@@ -124,7 +126,7 @@ cv::Mat geo_line(cv::Mat &image, int x, int y, int &sum)
 	}
 	
 	cv::Mat new_image;
-	if (sum >= 700) {
+	if (sum >= 1000) {
 		new_image = image.clone();
 
 		for (int i = 0; i < 800; ++i)

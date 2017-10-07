@@ -86,6 +86,31 @@ void select_color(cv::Mat &image, int hue_min, int hue_max, int sat_min, int sat
 	cvtColor(image, image, CV_BGR2GRAY);
 }
 
+int f_gray(cv::Mat &image, int x, int y)
+{
+	std::vector<char> pixel = get(image, x, y);
+	return abs(pixel[0] - pixel[1]) + abs(pixel[1] - pixel[2]) + abs(pixel[2] - pixel[0]);
+}
+
+void select_gray(cv::Mat &image) {
+	cvtColor(image, image, CV_BGR2HSV);
+	for (int x = 0; x < image.cols; x++) {
+		for (int y = 0; y < image.rows; y++) {
+			std::vector<char> pixel = get(image, x, y);
+			int hue = (int)((unsigned char)pixel[0]);
+			int sat = (int)((unsigned char)pixel[1]);
+			int val = (int)((unsigned char)pixel[2]);
+			if (f_gray(image, x, y) < 20) {
+				set(image, x, y, COLOR_WHITE);
+			}
+			else {
+				set(image, x, y, COLOR_BLACK);
+			}
+		}
+	}
+	cvtColor(image, image, CV_BGR2GRAY);
+}
+
 void cut_level(cv::Mat &image, int color, double threshold) {
 	for (int x = 0; x < image.cols; x++) {
 		for (int y = 0; y < image.rows; y++) {

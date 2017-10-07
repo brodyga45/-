@@ -1,3 +1,4 @@
+
 #pragma once
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -19,3 +20,4 @@ void cut_level(cv::Mat &image, int color, double threshold);
 cv::Mat min_filter(cv::Mat &image_1, cv::Mat &image_2);
 cv::Mat max_filter(cv::Mat &image_1, cv::Mat &image_2);
 cv::Mat apply_mask(cv::Mat &image, cv::Mat &mask);
+void select_gray(cv::Mat &image);
