@@ -5,7 +5,7 @@
 #include "afin.h"
 using namespace std;
 bool check_for_black(vector <char> c) {
-	return (int)(unsigned char)c[0] + (int)(unsigned char)c[1] + (int)(unsigned char)c[2] < 15;
+	return (int)(unsigned char)c[0] + (int)(unsigned char)c[1] + (int)(unsigned char)c[2] > 15;
 }
 vector < vector <long double> > preob(int vl, int vr) {
 	vector < vector <long double> > ans = { {1, 0}, {0, 1} };
@@ -33,11 +33,11 @@ cv::Mat norm_image(cv::Mat im) {
 	}*/
 
 	int vl = 100, vr = 100;
-	for (int i = 0; i <n; i++) {
-		if (check_for_black(get(im, i, 0))) {
+	for (int i = 0; i <n - 2; i++) {
+		if (check_for_black(get(im, 2, i)) && check_for_black(get(im, 2, i+1)) && check_for_black(get(im, 2, i+2))) {
 			vl = min(vl, i);
 		}
-		if (check_for_black(get(im, i, n-1))) {
+		if (check_for_black(get(im, n-3, i)) && check_for_black(get(im, n-3, i+1)) && check_for_black(get(im, n-3, i+2))) {
 			vr = min(vr, i);
 		}
 	}
@@ -50,22 +50,20 @@ cv::Mat norm_image(cv::Mat im) {
 			set(image, i, j, { 0, 0, 0 });
 		}
 	}
-	long double k = (sqrt((long double)(vr - vl) * (long double)(vr - vl) + 99.0 * 99.0)) / 99.0;
+	//long double k = (sqrt((long double)(vr - vl) * (long double)(vr - vl) + 99.0 * 99.0)) / 99.0;
 	
 	long double mix = 100, mx = 0;
 	for (int i = 0; i < n; i++) {
 		for (int j = 0;j < m; j++)
-			if(!check_for_black(get(im,i,j))){
+			if(check_for_black(get(im,i,j))){
 			long double xc, y, x, yc;
 			xc = i;
 			yc = j;
 			y = yc;
 			x = xc;
 			long double vl1 = vl, vr1 = vr;
-			y = y-((double)(vl1-vr1)/sqrt((vl1-vr1)*(vl1-vr1)+99.0*99.0))*x*1.05;
-			x = x * k;
-			y = y * k;
-			mix = min(mix, max((long double)0.0, y));
+			y = y - (vr1 - vl1)/(96.0)*x*1.05;
+			/*mix = min(mix, max((long double)0.0, y));
 			mx = max(mx, min((long double)100.0, y));
 			int xa, ya;
 			xa = x + 0.0001;
@@ -77,35 +75,67 @@ cv::Mat norm_image(cv::Mat im) {
 			if (xa == 0) {
 				int ghghhg = 55;
 			}
-			
-			//set(image, xa, ya, get(im, i, j));
-		}
-	}//переписать
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < m; j++) {
-			long double xc, y, x, yc;
-			xc = i;
-			yc = j;
-			y = yc;	
-			x = xc;
-			long double vl1 = vl, vr1 = vr;
-			y = y - (double)(vl1 - vr1) / sqrt((vl1 - vr1)*(vl1 - vr1) + 99.0*99.0)*x*1.05;
-			x = x * k;
-			y = y * k;
-			y -= mix;
-			y *= 99.0 / ((long double)mx - (long double)mix);
+			*/
 			int xa, ya;
 			xa = x + 0.0001;
 			ya = y + 0.0001;
 			xa = max(0, xa);
 			xa = min(99, xa);
-			ya -= 8;
 			ya = max(0, ya);
-			
 			ya = min(99, ya);
-			
 			set(image, xa, ya, get(im, i, j));
 		}
+	}
+	int miny = 100;
+	int maxy = 0;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			if (check_for_black(get(image, i, j)))
+			{
+				miny = min(miny, j);
+				maxy = max(maxy, j);
+			}
+	cv::Mat imcl = image.clone();
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			set(imcl, i, j, COLOR_BLACK);
+	for (int i = 0; i < n; i++)
+		for (int j = miny+3; j < m; j++)
+			set(imcl, i, j-miny-3, get(image, i, j));
+	for (int i = 0; i < n; i++) 
+		for (int j = 0; j < m; j++)
+			set(image, i, j, COLOR_BLACK);
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++)
+			if (check_for_black(get(imcl, i, j))) {
+				long double xc, y, x, yc;
+				xc = i;
+				yc = j;
+				y = yc;
+				x = xc;
+				y = y * 100 / (maxy - miny);
+				/*mix = min(mix, max((long double)0.0, y));
+				mx = max(mx, min((long double)100.0, y));
+				int xa, ya;
+				xa = x + 0.0001;
+				ya = y + 0.0001;
+				xa = max(0, xa);
+				xa = min(99, xa);
+				ya = max(0, ya);
+				ya = min(99, ya);
+				if (xa == 0) {
+				int ghghhg = 55;
+				}
+				*/
+				int xa, ya;
+				xa = x + 0.0001;
+				ya = y + 0.0001;
+				xa = max(0, xa);
+				xa = min(99, xa);
+				ya = max(0, ya);
+				ya = min(99, ya);
+				set(image, xa, ya, get(imcl, i, j));
+			}
 	}
 	return image;
 }
