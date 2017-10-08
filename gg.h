@@ -9,3 +9,4 @@
 
 std::vector<int> count_threshold(cv::Mat &image, int type);
 cv::Mat geo_line(cv::Mat &image, int x, int y, int &sum);
+void app_means(cv::Mat &image);

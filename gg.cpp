@@ -66,6 +66,68 @@ std::vector<int> count_threshold(cv::Mat &image, int type)
    return { threshold, min, max };
 }
 
+std::vector<int> print_histogram(cv::Mat &image, int type)
+{
+
+	auto pixel0 = get(image, 0, 0);
+	int min = (unsigned char)pixel0[type], max = (unsigned char)pixel0[type];
+	int temp, temp1;
+	int histSize;
+
+	int alpha, beta, threshold = 0;
+	double sigma, maxSigma = -1;
+	double w1, a;
+	int hist[256];
+
+	for (int i = 0; i < 256; i++) hist[i] = 0;
+
+	for (int i = 0; i < image.cols; i++)
+		for (int j = 0; j < image.rows; ++j)
+		{
+			auto pixel = get(image, i, j);
+			temp = (unsigned char)pixel[type];
+			hist[temp]++;
+		}
+
+	temp = temp1 = 0;
+	alpha = beta = 0;
+
+	for (int i = 0; i <= 255; i++)
+	{
+		temp += i*hist[i];
+		temp1 += hist[i];
+	}
+
+	for (int i = 0; i < 256; i++)
+	{
+		alpha += i * hist[i];
+		beta += hist[i];
+
+		w1 = (double)beta / temp1;
+		a = (double)alpha / beta - (double)(temp - alpha) / (temp1 - beta);
+		sigma = w1 * (1 - w1) * a * a;
+
+		if (sigma > maxSigma)
+		{
+			maxSigma = sigma;
+			threshold = i;
+		}
+	}
+
+	int histSum = 0;
+	for (int i = 0; i < 256; i++) histSum += hist[i];
+
+	min = 0;
+	int sum = 0;
+	while (sum * 10 < histSum && min < 255) sum += hist[min++];
+
+	max = 255;
+	sum = 0;
+	while (sum * 10 < histSum && max > 0) sum += hist[max--];
+
+	return{ threshold, min, max };
+}
+
 std::pair<int, int> operator +(
 	std::pair<int, int> a,
 	std::pair<int, int> b
@@ -140,4 +202,41 @@ cv::Mat geo_line(cv::Mat &image, int x, int y, int &sum)
 	}
 
 	return new_image;
+}
+
+
+void app_means(cv::Mat &image)
+{
+	cv::Mat copy_ = image.clone();
+	for (int i = 1; i < image.cols - 1; ++i)
+		for (int j = 1; j < image.rows - 1; ++j)
+		{
+			std::pair<int, int> curr = std::make_pair(i, j);
+			std::pair<int, int> v	 = std::make_pair(1, 0);
+			std::vector<char> pixel = get(image, i, j);
+			std::vector<int> bgr(3);
+			std::vector<char> nbgr(3);
+			for (int k = 0; k < 3; ++k)
+			{
+				bgr[k] = (int)(unsigned char)pixel[k];
+				nbgr[k] = 100 * bgr[k];
+			}
+			/*
+			for (int angle = 0; angle < 4; ++angle)
+			{
+				//pixel = get(image, (curr + v).first, (curr + v).second);
+				for (int k = 0; k < pixel.size(); ++k)
+				{
+					nbgr[k] += (int)(unsigned char)pixel[k];
+				}
+				v = turn(v);
+			}
+			*/
+			for (int k = 0; k < 3; ++k)
+				pixel[k] = char(nbgr[k] / 100);
+			
+			set(copy_, i, j, pixel);
+		}
+
+	image = copy_;
 }
